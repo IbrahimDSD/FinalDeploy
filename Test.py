@@ -24,7 +24,7 @@ USER_DB = "user_management.db"
 def init_user_db():
     conn = sqlite3.connect(USER_DB)
     c = conn.cursor()
-    # إنشاء جدول المستخدمين إذا لم يكن موجوداً
+    # Create users table if it doesn't exist
     c.execute('''CREATE TABLE IF NOT EXISTS users
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   username TEXT UNIQUE,
@@ -33,7 +33,7 @@ def init_user_db():
                   full_name TEXT,
                   force_password_change INTEGER DEFAULT 0,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    # إنشاء جدول تقارير زمن إنشاء التقارير
+    # Create report_logs table to track report generation times
     c.execute('''CREATE TABLE IF NOT EXISTS report_logs
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   user_id INTEGER,
@@ -42,14 +42,14 @@ def init_user_db():
                   FOREIGN KEY(user_id) REFERENCES users(id))''')
     conn.commit()
 
-    # التأكد من وجود عمود force_password_change
+    # Ensure 'force_password_change' column exists
     c.execute("PRAGMA table_info(users)")
     cols = [row[1] for row in c.fetchall()]
     if 'force_password_change' not in cols:
         c.execute("ALTER TABLE users ADD COLUMN force_password_change INTEGER DEFAULT 0")
         conn.commit()
 
-    # إنشاء مستخدم admin افتراضي إذا لم يكن موجوداً
+    # Create default admin user if not exists
     c.execute("SELECT * FROM users WHERE username = 'admin'")
     admin = c.fetchone()
     if not admin:
@@ -98,7 +98,7 @@ def reset_user_password(user_id, new_password):
 def delete_user(user_id):
     conn = sqlite3.connect(USER_DB)
     c = conn.cursor()
-    # حذف تقارير المستخدم أولاً
+    # Delete associated report logs first due to foreign key constraint
     c.execute("DELETE FROM report_logs WHERE user_id = ?", (user_id,))
     c.execute("DELETE FROM users WHERE id = ?", (user_id,))
     conn.commit()
@@ -141,7 +141,7 @@ def change_password(user_id, new_password):
 
 # ----------------- Report Logging Functions -----------------
 def log_report_generation(user_id, duration):
-    """تسجيل زمن إنشاء التقرير."""
+    """Log the time taken for report generation."""
     conn = sqlite3.connect(USER_DB)
     c = conn.cursor()
     c.execute("INSERT INTO report_logs (user_id, duration) VALUES (?, ?)", (user_id, duration))
@@ -150,7 +150,7 @@ def log_report_generation(user_id, duration):
 
 
 def get_report_summary():
-    """استرجاع ملخص زمن إنشاء التقارير لكل مستخدم."""
+    """Retrieve a summary of report generation times per user."""
     conn = sqlite3.connect(USER_DB)
     c = conn.cursor()
     c.execute("""
@@ -574,38 +574,12 @@ def main_app():
                 file_name=f"Aging_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv"
             )
-        with col2:
-            if st.button("🖨️ Print Report"):
-                st.markdown("""
-                    <script>
-                        window.print();
-                    </script>
-                """, unsafe_allow_html=True)
-        components.html("""
-        <div id="printTrigger"></div>
-        <script>
-            function handlePrint() {
-                const btn = document.createElement('button');
-                btn.style.display = 'none';
-                btn.onclick = () => window.print();
-                document.body.appendChild(btn);
-                btn.click();
-                btn.remove();
-            }
-            window.addEventListener('DOMContentLoaded', () => {
-                const printBtn = document.querySelector('[data-testid="stButton"]');
-                if(printBtn) {
-                    printBtn.addEventListener('click', handlePrint);
-                }
-            });
-        </script>
-        """, height=0, width=0)
+        
 
         # --- Detailed Installments Search by Reference ---
         st.markdown("---")
         st.subheader("تفاصيل سداد فاتورة معينة")
-        st.write("أدخل الـ reference الخاص بالفاتورة ")
-        search_ref = st.text_input("أدخل reference للفاتورة:", value="")
+        
 
         # Build detailed FIFO events for installments using opening balances and transactions
         cash_debits, cash_credits, gold_debits, gold_credits = [], [], [], []
