@@ -3,3 +3,5 @@ pandas
 numpy
 SQLAlchemy
 pyodbc
+passlib.hash
+urllib.parse
