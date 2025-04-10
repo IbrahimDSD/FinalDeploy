@@ -4,3 +4,4 @@ numpy
 passlib
 SQLAlchemy
 pyodbc
+sqlitecloud
