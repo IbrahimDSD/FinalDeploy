@@ -173,7 +173,7 @@ def create_db_engine():
         username = "sa"
         password = "Argus@NEG"
         driver = "ODBC Driver 17 for SQL Server"
-        connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password};TrustServerCertificate=Yes;Connection Timeout=30"
+        connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password};TrustServerCertificate=Yes;Connection Timeout=60"
         encoded_connection = quote_plus(connection_string)
         engine = create_engine(f"mssql+pyodbc:///?odbc_connect={encoded_connection}")
         with engine.connect() as conn:
