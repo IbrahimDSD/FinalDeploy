@@ -645,11 +645,7 @@ def main_app():
                                               (gold_details_df['date'] <= pd.to_datetime(end_date))]
 
         # تطبيق البحث على كل DataFrame على حدة
-        if search_ref.strip() != "":
-            cash_details_df = cash_details_df[
-                cash_details_df['reference'].str.contains(search_ref, case=False, na=False)]
-            gold_details_df = gold_details_df[
-                gold_details_df['reference'].str.contains(search_ref, case=False, na=False)]
+       
 
         # تصفية التفاصيل بحيث تُعرض فقط الفواتير التي aging_days أكبر من القيمة المُدخلة
         if not cash_details_df.empty:
