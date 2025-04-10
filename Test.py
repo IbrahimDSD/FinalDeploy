@@ -18,146 +18,165 @@ def rerun():
 
 
 # ----------------- User Database Configuration -----------------
-USER_DB = "user_management.db"
+USER_DB_URI = (
+    "sqlitecloud://cpran7d0hz.g2.sqlite.cloud:8860/"
+    "user_management.db?apikey=oUEez4Dc0TFsVVIVFu8SDRiXea9YVQLOcbzWBsUwZ78"
+)
 
+def get_sqlitecloud_connection():
+    """Return a sqlitecloud connection using the URI."""
+    try:
+        return sqlitecloud.connect(USER_DB_URI)
+    except Exception as e:
+        st.error(f"❌ Failed to connect to SQLiteCloud: {e}")
+        return None
 
 def init_user_db():
-    conn = sqlite3.connect(USER_DB)
+    conn = get_sqlitecloud_connection()
+    if not conn:
+        return
     c = conn.cursor()
-    # Create users table if it doesn't exist
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  username TEXT UNIQUE,
-                  password_hash TEXT,
-                  role TEXT,
-                  full_name TEXT,
-                  force_password_change INTEGER DEFAULT 0,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    # Create report_logs table to track report generation times
-    c.execute('''CREATE TABLE IF NOT EXISTS report_logs
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  user_id INTEGER,
-                  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  duration REAL,
-                  FOREIGN KEY(user_id) REFERENCES users(id))''')
-    conn.commit()
-
-    # Ensure 'force_password_change' column exists
-    c.execute("PRAGMA table_info(users)")
-    cols = [row[1] for row in c.fetchall()]
-    if 'force_password_change' not in cols:
-        c.execute("ALTER TABLE users ADD COLUMN force_password_change INTEGER DEFAULT 0")
-        conn.commit()
-
-    # Create default admin user if not exists
-    c.execute("SELECT * FROM users WHERE username = 'admin'")
-    admin = c.fetchone()
-    if not admin:
-        default_password = "admin123"
-        hashed_pw = pbkdf2_sha256.hash(default_password)
-        c.execute(
-            "INSERT INTO users (username, password_hash, role, full_name, force_password_change) VALUES (?, ?, ?, ?, 1)",
-            ("admin", hashed_pw, "admin", "System Admin")
+    # users table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE,
+          password_hash TEXT,
+          role TEXT,
+          full_name TEXT,
+          force_password_change INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-        conn.commit()
+    """)
+    # report_logs table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS report_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          duration REAL,
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+    # default admin
+    c.execute("SELECT 1 FROM users WHERE username = 'admin'")
+    if not c.fetchone():
+        pw = pbkdf2_sha256.hash("admin123")
+        c.execute("""
+            INSERT INTO users(username,password_hash,role,full_name,force_password_change)
+            VALUES (?,?,?,?,1)
+        """, ("admin", pw, "admin", "System Admin"))
+    conn.commit()
     conn.close()
-
 
 init_user_db()
 
-
 # ----------------- User Management Functions -----------------
 def create_user(username, password, role, full_name):
-    hashed_pw = pbkdf2_sha256.hash(password)
+    conn = get_sqlitecloud_connection()
+    if not conn:
+        return False
+    c = conn.cursor()
     try:
-        conn = sqlite3.connect(USER_DB)
-        c = conn.cursor()
-        c.execute(
-            "INSERT INTO users (username, password_hash, role, full_name, force_password_change) VALUES (?, ?, ?, ?, 1)",
-            (username, hashed_pw, role, full_name)
-        )
+        pw = pbkdf2_sha256.hash(password)
+        c.execute("""
+            INSERT INTO users(username,password_hash,role,full_name,force_password_change)
+            VALUES (?,?,?,?,1)
+        """, (username, pw, role, full_name))
         conn.commit()
         return True
-    except sqlite3.IntegrityError:
+    except Exception:
         return False
     finally:
         conn.close()
 
-
 def reset_user_password(user_id, new_password):
-    hashed_pw = pbkdf2_sha256.hash(new_password)
-    conn = sqlite3.connect(USER_DB)
+    conn = get_sqlitecloud_connection()
+    if not conn:
+        return
     c = conn.cursor()
+    pw = pbkdf2_sha256.hash(new_password)
     c.execute(
-        "UPDATE users SET password_hash = ?, force_password_change = 1 WHERE id = ?",
-        (hashed_pw, user_id))
+        "UPDATE users SET password_hash=?, force_password_change=1 WHERE id=?",
+        (pw, user_id)
+    )
     conn.commit()
     conn.close()
-
 
 def delete_user(user_id):
-    conn = sqlite3.connect(USER_DB)
+    conn = get_sqlitecloud_connection()
+    if not conn:
+        return
     c = conn.cursor()
-    # Delete associated report logs first due to foreign key constraint
-    c.execute("DELETE FROM report_logs WHERE user_id = ?", (user_id,))
-    c.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    c.execute("DELETE FROM report_logs WHERE user_id=?", (user_id,))
+    c.execute("DELETE FROM users WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
 
-
 def get_all_users():
-    conn = sqlite3.connect(USER_DB)
+    conn = get_sqlitecloud_connection()
+    if not conn:
+        return []
     c = conn.cursor()
     c.execute("SELECT id, username, role, full_name FROM users")
     users = c.fetchall()
     conn.close()
     return users
 
-
 def verify_user(username, password):
-    conn = sqlite3.connect(USER_DB)
+    conn = get_sqlitecloud_connection()
+    if not conn:
+        return None, None, False
     c = conn.cursor()
     c.execute(
-        "SELECT id, password_hash, role, force_password_change FROM users WHERE username = ?",
-        (username,))
-    result = c.fetchone()
+        "SELECT id, password_hash, role, force_password_change FROM users WHERE username=?",
+        (username,)
+    )
+    row = c.fetchone()
     conn.close()
-    if result and pbkdf2_sha256.verify(password, result[1]):
-        user_id, _, role, force_flag = result
-        return user_id, role, bool(force_flag)
+    if row and pbkdf2_sha256.verify(password, row[1]):
+        return row[0], row[2], bool(row[3])
     return None, None, False
 
-
 def change_password(user_id, new_password):
-    hashed_pw = pbkdf2_sha256.hash(new_password)
-    conn = sqlite3.connect(USER_DB)
+    conn = get_sqlitecloud_connection()
+    if not conn:
+        return
     c = conn.cursor()
+    pw = pbkdf2_sha256.hash(new_password)
     c.execute(
-        "UPDATE users SET password_hash = ?, force_password_change = 0 WHERE id = ?",
-        (hashed_pw, user_id))
+        "UPDATE users SET password_hash=?, force_password_change=0 WHERE id=?",
+        (pw, user_id)
+    )
     conn.commit()
     conn.close()
-
 
 # ----------------- Report Logging Functions -----------------
 def log_report_generation(user_id, duration):
-    """Log the time taken for report generation."""
-    conn = sqlite3.connect(USER_DB)
+    conn = get_sqlitecloud_connection()
+    if not conn:
+        return
     c = conn.cursor()
-    c.execute("INSERT INTO report_logs (user_id, duration) VALUES (?, ?)", (user_id, duration))
+    c.execute(
+        "INSERT INTO report_logs(user_id,duration) VALUES (?,?)",
+        (user_id, duration)
+    )
     conn.commit()
     conn.close()
 
-
 def get_report_summary():
-    """Retrieve a summary of report generation times per user."""
-    conn = sqlite3.connect(USER_DB)
+    conn = get_sqlitecloud_connection()
+    if not conn:
+        return []
     c = conn.cursor()
     c.execute("""
-        SELECT u.username, AVG(r.duration), SUM(r.duration), COUNT(r.id)
-        FROM report_logs r
-        JOIN users u ON r.user_id = u.id
-        GROUP BY u.username
+        SELECT u.username,
+               AVG(r.duration),
+               SUM(r.duration),
+               COUNT(r.id)
+          FROM report_logs r
+          JOIN users u ON r.user_id = u.id
+      GROUP BY u.username
     """)
     summary = c.fetchall()
     conn.close()
