@@ -168,7 +168,7 @@ def get_report_summary():
 def create_db_engine():
     """إنشاء محرك اتصال بقاعدة البيانات."""
     try:
-        server = "neg_data_server.arguserp.net"
+        server = "52.48.117.197"
         database = "R1029"
         username = "sa"
         password = "Argus@NEG"
