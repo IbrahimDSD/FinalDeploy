@@ -549,16 +549,16 @@ def main_app():
                 gold = 0
             # إذا كانت كل من قيمة النقدي والذهبي أكبر من الحد، يتم تلوين الصف بأكمله
             if cash > aging_threshold and gold > aging_threshold:
-                styles = ['background-color: green'] * len(row)
+                styles = ['background-color: red'] * len(row)
             else:
                 # إذا كان فقط النقدي أكبر من الحد
                 if cash > aging_threshold:
                     idx = row.index.get_loc('aging_days_cash')
-                    styles[idx] = 'background-color: green'
+                    styles[idx] = 'background-color: red'
                 # إذا كان فقط الذهبي أكبر من الحد
                 if gold > aging_threshold:
                     idx = row.index.get_loc('aging_days_gold')
-                    styles[idx] = 'background-color: green'
+                    styles[idx] = 'background-color: red'
             return styles
 
         styled_report = report.style.apply(highlight_row, axis=1)
