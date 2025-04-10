@@ -1,7 +1,6 @@
 streamlit
 pandas
 numpy
+passlib
 SQLAlchemy
 pyodbc
-passlib.hash
-urllib.parse
