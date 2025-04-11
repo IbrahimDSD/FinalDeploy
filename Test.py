@@ -686,7 +686,7 @@ def main_app():
         st.markdown("### تفاصيل السداد نقدًا")
         if not cash_details_df.empty:
             st.dataframe(cash_details_df[
-                             ['Invoice Date', 'reference', 'invoice_amount', 'applied', 'remaining', 'Paid Date',
+                             ['Invoice Date', 'reference', 'Cash', 'applied', 'remaining', 'Paid Date',
                               'aging_days']].reset_index(drop=True),
                          use_container_width=True)
         else:
@@ -695,7 +695,7 @@ def main_app():
         st.markdown("### تفاصيل السداد ذهباً")
         if not gold_details_df.empty:
             st.dataframe(gold_details_df[
-                             ['Invoice Date', 'reference', 'invoice_amount', 'applied', 'remaining', 'Paid Date',
+                             ['Invoice Date', 'reference', 'G21', 'applied', 'remaining', 'Paid Date',
                               'aging_days']].reset_index(drop=True),
                          use_container_width=True)
         else:
