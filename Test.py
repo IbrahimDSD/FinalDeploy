@@ -24,6 +24,7 @@ USER_DB_URI = (
     "user_management.db?apikey=oUEez4Dc0TFsVVIVFu8SDRiXea9YVQLOcbzWBsUwZ78"
 )
 
+
 def get_sqlitecloud_connection():
     """Return a sqlitecloud connection using the URI."""
     try:
@@ -31,6 +32,7 @@ def get_sqlitecloud_connection():
     except Exception as e:
         st.error(f"❌ Failed to connect to SQLiteCloud: {e}")
         return None
+
 
 def init_user_db():
     conn = get_sqlitecloud_connection()
@@ -70,7 +72,9 @@ def init_user_db():
     conn.commit()
     conn.close()
 
+
 init_user_db()
+
 
 # ----------------- User Management Functions -----------------
 def create_user(username, password, role, full_name):
@@ -91,6 +95,7 @@ def create_user(username, password, role, full_name):
     finally:
         conn.close()
 
+
 def reset_user_password(user_id, new_password):
     conn = get_sqlitecloud_connection()
     if not conn:
@@ -104,6 +109,7 @@ def reset_user_password(user_id, new_password):
     conn.commit()
     conn.close()
 
+
 def delete_user(user_id):
     conn = get_sqlitecloud_connection()
     if not conn:
@@ -114,6 +120,7 @@ def delete_user(user_id):
     conn.commit()
     conn.close()
 
+
 def get_all_users():
     conn = get_sqlitecloud_connection()
     if not conn:
@@ -123,6 +130,7 @@ def get_all_users():
     users = c.fetchall()
     conn.close()
     return users
+
 
 def verify_user(username, password):
     conn = get_sqlitecloud_connection()
@@ -139,6 +147,7 @@ def verify_user(username, password):
         return row[0], row[2], bool(row[3])
     return None, None, False
 
+
 def change_password(user_id, new_password):
     conn = get_sqlitecloud_connection()
     if not conn:
@@ -152,6 +161,7 @@ def change_password(user_id, new_password):
     conn.commit()
     conn.close()
 
+
 # ----------------- Report Logging Functions -----------------
 def log_report_generation(user_id, duration):
     conn = get_sqlitecloud_connection()
@@ -164,6 +174,7 @@ def log_report_generation(user_id, duration):
     )
     conn.commit()
     conn.close()
+
 
 def get_report_summary():
     conn = get_sqlitecloud_connection()
@@ -182,6 +193,7 @@ def get_report_summary():
     summary = c.fetchall()
     conn.close()
     return summary
+
 
 # ----------------- Application Database Configuration -----------------
 def create_db_engine():
@@ -384,7 +396,7 @@ def process_fifo_detailed(debits, credits):
             'applied': 0,
             'remaining': d['remaining'],
             'paid_date': None,
-            'aging_days': ""
+            'aging_days': "-"
         }
         detailed.append(event)
     return detailed
@@ -593,12 +605,10 @@ def main_app():
                 file_name=f"Aging_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv"
             )
-        
 
         # --- Detailed Installments Search by Reference ---
         st.markdown("---")
         st.subheader("تفاصيل سداد فاتورة معينة")
-        
 
         # Build detailed FIFO events for installments using opening balances and transactions
         cash_debits, cash_credits, gold_debits, gold_credits = [], [], [], []
@@ -665,7 +675,6 @@ def main_app():
                                               (gold_details_df['date'] <= pd.to_datetime(end_date))]
 
         # تطبيق البحث على كل DataFrame على حدة
-       
 
         # تصفية التفاصيل بحيث تُعرض فقط الفواتير التي aging_days أكبر من القيمة المُدخلة
         if not cash_details_df.empty:
