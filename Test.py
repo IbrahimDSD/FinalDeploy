@@ -396,7 +396,7 @@ def process_fifo_detailed(debits, credits):
             'applied': 0,
             'remaining': d['remaining'],
             'paid_date': None,
-            'aging_days': "-"
+            'aging_days': (today - d['date']).days
         }
         detailed.append(event)
     return detailed
