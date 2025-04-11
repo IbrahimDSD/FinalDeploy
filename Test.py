@@ -384,7 +384,7 @@ def process_fifo_detailed(debits, credits):
             'applied': 0,
             'remaining': d['remaining'],
             'paid_date': None,
-            'aging_days': (today - d['date']).days
+            'aging_days': ""
         }
         detailed.append(event)
     return detailed
@@ -686,7 +686,7 @@ def main_app():
         st.markdown("### تفاصيل السداد نقدًا")
         if not cash_details_df.empty:
             st.dataframe(cash_details_df[
-                             ['Invoice Date', 'reference', 'Cash', 'applied', 'remaining', 'Paid Date',
+                             ['Invoice Date', 'reference', 'invoice_amount', 'applied', 'remaining', 'Paid Date',
                               'aging_days']].reset_index(drop=True),
                          use_container_width=True)
         else:
@@ -695,7 +695,7 @@ def main_app():
         st.markdown("### تفاصيل السداد ذهباً")
         if not gold_details_df.empty:
             st.dataframe(gold_details_df[
-                             ['Invoice Date', 'reference', 'G21', 'applied', 'remaining', 'Paid Date',
+                             ['Invoice Date', 'reference', 'invoice_amount', 'applied', 'remaining', 'Paid Date',
                               'aging_days']].reset_index(drop=True),
                          use_container_width=True)
         else:
